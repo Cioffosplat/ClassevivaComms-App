@@ -24,7 +24,7 @@ class LoginPage extends StatelessWidget {
   TextEditingController passwordController = TextEditingController();
 
   Future<void> login(BuildContext context) async {
-    String url = 'http://192.168.101.35/projects/ClassevivaComms/Fat3/login';
+    String url = 'http://192.168.1.177/projects/ClassevivaComms/Fat3/login';
     Map<String, String> data = {
       'username': usernameController.text,
       'password': passwordController.text,
@@ -34,17 +34,21 @@ class LoginPage extends StatelessWidget {
       var response = await http.post(Uri.parse(url), body: data);
       if (response.statusCode == 200) {
         var loginData = jsonDecode(response.body);
-        // Gestisci i dati di accesso qui, ad esempio:
-        print(loginData);
-        // Naviga a una nuova schermata dopo il login con i dati dell'utente
-        Navigator.push(
+        UserData userData = UserData(
+          ident: loginData['ident'],
+          firstName: loginData['firstName'],
+          lastName: loginData['lastName'],
+          token: loginData['token'],
+        );
+        UserData.setUserData(userData);
+
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomePage(loginData: loginData),
+            builder: (context) => MainScreen(userData: userData),
           ),
         );
       } else {
-        // Gestisci gli errori di login qui
         print('Errore durante il login: ${response.statusCode}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Errore durante il login')),
@@ -90,27 +94,82 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
-  final dynamic loginData;
+class MainScreen extends StatelessWidget {
+  final UserData userData;
 
-  const HomePage({Key? key, required this.loginData}) : super(key: key);
+  const MainScreen({Key? key, required this.userData}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Home'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.person),
+            onPressed: () {
+              // Aggiungi qui la logica per aprire il profilo utente
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-                'Benvenuto, ${loginData['firstName']} ${loginData['lastName']}!'),
-            // Aggiungi qui altri widget per mostrare le informazioni dell'utente
+              'Benvenuto, ${userData.firstName} ${userData.lastName}!',
+              style: TextStyle(fontSize: 18),
+            ),
+            Text('Ident: ${userData.numericIdent}'),
+            Text('Token: ${userData.token}'),
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Preferiti',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat),
+            label: 'Comunicazioni',
+          ),
+        ],
+        selectedItemColor: Colors.blue,
+        selectedIconTheme: IconThemeData(color: Colors.blue),
+      ),
     );
+  }
+}
+
+
+class UserData {
+  final String ident;
+  final String firstName;
+  final String lastName;
+  final String token;
+  final int numericIdent;
+
+  UserData({
+    required this.ident,
+    required this.firstName,
+    required this.lastName,
+    required this.token,
+  }) : numericIdent = int.parse(ident.substring(1, ident.length - 1));
+
+  static UserData? _userData;
+
+  static void setUserData(UserData userData) {
+    _userData = userData;
+  }
+
+  static UserData? getUserData() {
+    return _userData;
   }
 }
