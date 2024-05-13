@@ -215,30 +215,41 @@ class _CommunicationPageState extends State<CommunicationPage> {
             )
           : _communications.isEmpty
               ? Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: [
-                      DataColumn(label: Text('Titolo')),
-                      DataColumn(label: Text('Categoria')),
-                      DataColumn(label: Text('Valido Da')),
-                      DataColumn(label: Text('Valido A')),
-                    ],
-                    rows: _communications
-                        .map<DataRow>((communication) => DataRow(
-                              cells: [
-                                DataCell(
-                                    Text(communication['cntTitle'] ?? '')),
-                                DataCell(Text(
-                                    communication['cntCategory'] ?? '')),
-                                DataCell(
-                                    Text(communication['cntValidFrom'] ?? '')),
-                                DataCell(
-                                    Text(communication['cntValidTo'] ?? '')),
+              : ListView.builder(
+                  itemCount: _communications.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final communication = _communications[index];
+                    return ListTile(
+                      title: Text(communication['cntTitle'] ?? ''),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text(communication['cntTitle'] ?? ''),
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('Categoria: ${communication['cntCategory'] ?? ''}'),
+                                  Text('Valido Da: ${communication['cntValidFrom'] ?? ''}'),
+                                  Text('Valido A: ${communication['cntValidTo'] ?? ''}'),
+                                ],
+                              ),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('Chiudi'),
+                                ),
                               ],
-                            ))
-                        .toList(),
-                  ),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
                 ),
     );
   }
