@@ -94,10 +94,28 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   final UserData userData;
 
   const MainScreen({Key? key, required this.userData}) : super(key: key);
+
+  @override
+  _MainScreenState createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+  static List<Widget> _widgetOptions = <Widget>[
+    HomePage(),
+    FavoritesPage(),
+    CommunicationPage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,17 +132,7 @@ class MainScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Benvenuto, ${userData.firstName} ${userData.lastName}!',
-              style: TextStyle(fontSize: 18),
-            ),
-            Text('Ident: ${userData.numericIdent}'),
-            Text('Token: ${userData.token}'),
-          ],
-        ),
+        child: _widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: [
@@ -141,13 +149,143 @@ class MainScreen extends StatelessWidget {
             label: 'Comunicazioni',
           ),
         ],
+        currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
-        selectedIconTheme: IconThemeData(color: Colors.blue),
+        onTap: _onItemTapped,
       ),
     );
   }
 }
 
+class CommunicationPage extends StatefulWidget {
+  const CommunicationPage({Key? key}) : super(key: key);
+
+  @override
+  _CommunicationPageState createState() => _CommunicationPageState();
+}
+
+class _CommunicationPageState extends State<CommunicationPage> {
+  List<dynamic> _communications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (UserData.getUserData() != null) {
+      _fetchCommunications();
+    }
+  }
+
+  Future<void> _fetchCommunications() async {
+    String url =
+        'http://192.168.1.177/projects/ClassevivaComms/Fat3/noticeboard';
+    String idWithoutChars =
+        UserData.getUserData()!.ident.replaceAll(RegExp(r'[^0-9]'), '');
+    Map<String, String> data = {
+      'id': idWithoutChars,
+      'token': UserData.getUserData()!.token,
+    };
+
+    try {
+      var response = await http.post(Uri.parse(url), body: data);
+      if (response.statusCode == 200) {
+        var commsData = jsonDecode(response.body);
+        if (commsData != null && commsData['items'] != null) {
+          setState(() {
+            _communications = commsData['items'];
+          });
+        }
+      } else {
+        print('Errore durante la richiesta delle comunicazioni: ${response}');
+      }
+    } catch (e) {
+      print('Errore durante la richiesta delle comunicazioni: $e');
+      print('Response: ${e}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Comunicazioni'),
+      ),
+      body: UserData.getUserData() == null
+          ? Center(
+              child: Text('Effettua il login per accedere alle comunicazioni'),
+            )
+          : _communications.isEmpty
+              ? Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: [
+                      DataColumn(label: Text('Titolo')),
+                      DataColumn(label: Text('Categoria')),
+                      DataColumn(label: Text('Valido Da')),
+                      DataColumn(label: Text('Valido A')),
+                    ],
+                    rows: _communications
+                        .map<DataRow>((communication) => DataRow(
+                              cells: [
+                                DataCell(
+                                    Text(communication['cntTitle'] ?? '')),
+                                DataCell(Text(
+                                    communication['cntCategory'] ?? '')),
+                                DataCell(
+                                    Text(communication['cntValidFrom'] ?? '')),
+                                DataCell(
+                                    Text(communication['cntValidTo'] ?? '')),
+                              ],
+                            ))
+                        .toList(),
+                  ),
+                ),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  Widget build(BuildContext context) {
+    UserData? userData = UserData.getUserData();
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Benvenuto, ${userData?.firstName} ${userData?.lastName}!'),
+          Text('Ident: ${userData?.ident}'),
+          Text('Token: ${userData?.token}'),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // Aggiungi qui la logica per l'azione del pulsante
+            },
+            child: Text('Azione'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FavoritesPage extends StatefulWidget {
+  @override
+  _FavoritesPageState createState() => _FavoritesPageState();
+}
+
+class _FavoritesPageState extends State<FavoritesPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text('Favorites Page'),
+    );
+  }
+}
 
 class UserData {
   final String ident;
@@ -161,7 +299,7 @@ class UserData {
     required this.firstName,
     required this.lastName,
     required this.token,
-  }) : numericIdent = int.parse(ident.substring(1, ident.length - 1));
+  }) : numericIdent = int.parse(ident.replaceAll(RegExp(r'[^0-9]'), ''));
 
   static UserData? _userData;
 
