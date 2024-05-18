@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -13,6 +14,9 @@ class MyApp extends StatelessWidget {
       title: 'Login Example',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        textTheme: GoogleFonts.ubuntuCondensedTextTheme(
+          Theme.of(context).textTheme,
+        ),
       ),
       home: LoginPage(),
     );
@@ -24,7 +28,7 @@ class LoginPage extends StatelessWidget {
   TextEditingController passwordController = TextEditingController();
 
   Future<void> login(BuildContext context) async {
-    String url = 'http://192.168.1.177/projects/ClassevivaComms/Fat3/login';
+    String url = 'http://192.168.1.62/projects/ClassevivaComms/Fat3/login';
     Map<String, String> data = {
       'username': usernameController.text,
       'password': passwordController.text,
@@ -121,7 +125,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home'),
+        title: Text('Classeviva Comms'),
         actions: [
           IconButton(
             icon: Icon(Icons.person),
@@ -157,104 +161,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class CommunicationPage extends StatefulWidget {
-  const CommunicationPage({Key? key}) : super(key: key);
-
-  @override
-  _CommunicationPageState createState() => _CommunicationPageState();
-}
-
-class _CommunicationPageState extends State<CommunicationPage> {
-  List<dynamic> _communications = [];
-
-  @override
-  void initState() {
-    super.initState();
-    if (UserData.getUserData() != null) {
-      _fetchCommunications();
-    }
-  }
-
-  Future<void> _fetchCommunications() async {
-    String url =
-        'http://192.168.1.177/projects/ClassevivaComms/Fat3/noticeboard';
-    String idWithoutChars =
-        UserData.getUserData()!.ident.replaceAll(RegExp(r'[^0-9]'), '');
-    Map<String, String> data = {
-      'id': idWithoutChars,
-      'token': UserData.getUserData()!.token,
-    };
-
-    try {
-      var response = await http.post(Uri.parse(url), body: data);
-      if (response.statusCode == 200) {
-        var commsData = jsonDecode(response.body);
-        if (commsData != null && commsData['items'] != null) {
-          setState(() {
-            _communications = commsData['items'];
-          });
-        }
-      } else {
-        print('Errore durante la richiesta delle comunicazioni: ${response}');
-      }
-    } catch (e) {
-      print('Errore durante la richiesta delle comunicazioni: $e');
-      print('Response: ${e}');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Comunicazioni'),
-      ),
-      body: UserData.getUserData() == null
-          ? Center(
-              child: Text('Effettua il login per accedere alle comunicazioni'),
-            )
-          : _communications.isEmpty
-              ? Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  itemCount: _communications.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final communication = _communications[index];
-                    return ListTile(
-                      title: Text(communication['cntTitle'] ?? ''),
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: Text(communication['cntTitle'] ?? ''),
-                              content: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('Categoria: ${communication['cntCategory'] ?? ''}'),
-                                  Text('Valido Da: ${communication['cntValidFrom'] ?? ''}'),
-                                  Text('Valido A: ${communication['cntValidTo'] ?? ''}'),
-                                ],
-                              ),
-                              actions: <Widget>[
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text('Chiudi'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-    );
-  }
-}
-
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -268,6 +174,13 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Text(
+            'Home',
+            style: GoogleFonts.ubuntuCondensed(
+              textStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          SizedBox(height: 10),
           Text('Benvenuto, ${userData?.firstName} ${userData?.lastName}!'),
           Text('Ident: ${userData?.ident}'),
           Text('Token: ${userData?.token}'),
@@ -293,7 +206,113 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text('Favorites Page'),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Preferiti',
+            style: GoogleFonts.ubuntuCondensed(
+              textStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          SizedBox(height: 10),
+          Text('Favorites Page'),
+        ],
+      ),
+    );
+  }
+}
+
+class CommunicationPage extends StatefulWidget {
+  const CommunicationPage({Key? key}) : super(key: key);
+
+  @override
+  _CommunicationPageState createState() => _CommunicationPageState();
+}
+
+class _CommunicationPageState extends State<CommunicationPage> {
+  List<dynamic> _communications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (UserData.getUserData() != null) {
+      _fetchCommunications();
+    }
+  }
+
+  Future<void> _fetchCommunications() async {
+    String url =
+        'http://192.168.1.62/projects/ClassevivaComms/Fat3/noticeboard';
+    String idWithoutChars =
+        UserData.getUserData()!.ident.replaceAll(RegExp(r'[^0-9]'), '');
+    Map<String, String> data = {
+      'id': idWithoutChars,
+      'token': UserData.getUserData()!.token,
+    };
+
+    try {
+      var response = await http.post(Uri.parse(url), body: data);
+      if (response.statusCode == 200) {
+        var commsData = jsonDecode(response.body);
+        if (commsData != null && commsData['items'] != null) {
+          setState(() {
+            _communications = commsData['items'];
+            _communications.sort((a, b) {
+              DateTime dateA = DateTime.parse(a['pubDT']);
+              DateTime dateB = DateTime.parse(b['pubDT']);
+              return dateB.compareTo(dateA); // Ordine decrescente
+            });
+          });
+        }
+      } else {
+        print(
+            'Errore durante la richiesta delle comunicazioni: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Errore durante la richiesta delle comunicazioni: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Errore durante la richiesta delle comunicazioni')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: UserData.getUserData() == null
+          ? Center(
+              child: Text('Effettua il login per accedere alle comunicazioni'),
+            )
+          : _communications.isEmpty
+              ? Center(child: CircularProgressIndicator())
+              : Column(
+                  children: [
+                    Text(
+                      'Comunicazioni',
+                      style: GoogleFonts.ubuntuCondensed(
+                        textStyle: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _communications.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final communication = _communications[index];
+                          return ListTile(
+                            title: Text(communication['cntTitle'] ?? ''),
+                            onTap: () {
+                              // Aggiungi qui la logica per aprire la comunicazione
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
     );
   }
 }
@@ -303,22 +322,21 @@ class UserData {
   final String firstName;
   final String lastName;
   final String token;
-  final int numericIdent;
 
   UserData({
     required this.ident,
     required this.firstName,
     required this.lastName,
     required this.token,
-  }) : numericIdent = int.parse(ident.replaceAll(RegExp(r'[^0-9]'), ''));
+  });
 
   static UserData? _userData;
 
-  static void setUserData(UserData userData) {
-    _userData = userData;
-  }
-
   static UserData? getUserData() {
     return _userData;
+  }
+
+  static void setUserData(UserData userData) {
+    _userData = userData;
   }
 }
