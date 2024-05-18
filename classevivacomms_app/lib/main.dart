@@ -278,13 +278,54 @@ class _CommunicationPageState extends State<CommunicationPage> {
     }
   }
 
+  void _showCommunicationDetails(
+      BuildContext context, Map<String, dynamic> communication) {
+    List<dynamic> attachments = communication['attachments'];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(communication['cntTitle'] ?? 'Dettagli Comunicazione'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Data: ${communication['cntValidFrom'] ?? 'N/A'}'),
+                Text('Categoria: ${communication['cntCategory'] ?? 'N/A'}'),
+                SizedBox(height: 10),
+                Text('Allegati:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                attachments.isEmpty
+                    ? Text('Nessun allegato disponibile')
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: attachments.map((attachment) {
+                          return Text('${attachment['fileName']}',
+                              style: TextStyle(color: Colors.blue));
+                        }).toList(),
+                      ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Chiudi'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: UserData.getUserData() == null
           ? Center(
-              child: Text('Effettua il login per accedere alle comunicazioni'),
-            )
+              child: Text('Effettua il login per accedere alle comunicazioni'))
           : _communications.isEmpty
               ? Center(child: CircularProgressIndicator())
               : Column(
@@ -304,9 +345,8 @@ class _CommunicationPageState extends State<CommunicationPage> {
                           final communication = _communications[index];
                           return ListTile(
                             title: Text(communication['cntTitle'] ?? ''),
-                            onTap: () {
-                              // Aggiungi qui la logica per aprire la comunicazione
-                            },
+                            onTap: () => _showCommunicationDetails(
+                                context, communication),
                           );
                         },
                       ),
