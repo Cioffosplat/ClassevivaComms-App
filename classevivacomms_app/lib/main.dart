@@ -28,7 +28,7 @@ class LoginPage extends StatelessWidget {
   TextEditingController passwordController = TextEditingController();
 
   Future<void> login(BuildContext context) async {
-    String url = 'http://192.168.1.62/projects/ClassevivaComms/Fat3/login';
+    String url = 'http://192.168.1.187/projects/ClassevivaComms/Fat3/login';
     Map<String, String> data = {
       'username': usernameController.text,
       'password': passwordController.text,
@@ -121,6 +121,42 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  void _showUserProfile(BuildContext context) async {
+    String url = 'http://192.168.1.187/projects/ClassevivaComms/Fat3/card';
+    String idWithoutChars =
+        UserData.getUserData()!.ident.replaceAll(RegExp(r'[^0-9]'), '');
+    Map<String, String> data = {
+      'id': idWithoutChars,
+      'token': UserData.getUserData()!.token,
+    };
+
+    try {
+      var response = await http.post(Uri.parse(url), body: data);
+      if (response.statusCode == 200) {
+        var userProfileData = jsonDecode(response.body)['card'];
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                UserProfilePage(userProfileData: userProfileData),
+          ),
+        );
+      } else {
+        print(
+            'Errore durante la richiesta dei dati utente: ${response.statusCode}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Errore durante la richiesta dei dati utente')),
+        );
+      }
+    } catch (e) {
+      print('Errore durante la richiesta dei dati utente: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore durante la richiesta dei dati utente')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,9 +165,7 @@ class _MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.person),
-            onPressed: () {
-              // Aggiungi qui la logica per aprire il profilo utente
-            },
+            onPressed: () => _showUserProfile(context),
           ),
         ],
       ),
@@ -156,6 +190,41 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
         onTap: _onItemTapped,
+      ),
+    );
+  }
+}
+
+class UserProfilePage extends StatelessWidget {
+  final Map<String, dynamic> userProfileData;
+
+  UserProfilePage({required this.userProfileData});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Profilo Utente'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Nome: ${userProfileData['firstName']} ${userProfileData['lastName']}'),
+            Text('Ident: ${userProfileData['ident']}'),
+            Text('Tipo Utente: ${userProfileData['usrType']}'),
+            Text('ID Utente: ${userProfileData['usrId']}'),
+            Text('Codice Fiscale: ${userProfileData['fiscalCode']}'),
+            Text('Data di Nascita: ${userProfileData['birthDate']}'),
+            Text('Codice Scuola: ${userProfileData['schCode']}'),
+            Text(
+                'Nome Scuola: ${userProfileData['schName']} ${userProfileData['schDedication']}'),
+            Text('Città Scuola: ${userProfileData['schCity']}'),
+            Text('Provincia Scuola: ${userProfileData['schProv']}'),
+          ],
+        ),
       ),
     );
   }
@@ -243,7 +312,7 @@ class _CommunicationPageState extends State<CommunicationPage> {
 
   Future<void> _fetchCommunications() async {
     String url =
-        'http://192.168.1.62/projects/ClassevivaComms/Fat3/noticeboard';
+        'http://192.168.1.187/projects/ClassevivaComms/Fat3/noticeboard';
     String idWithoutChars =
         UserData.getUserData()!.ident.replaceAll(RegExp(r'[^0-9]'), '');
     Map<String, String> data = {
@@ -278,36 +347,28 @@ class _CommunicationPageState extends State<CommunicationPage> {
     }
   }
 
-  void _showCommunicationDetails(
-      BuildContext context, Map<String, dynamic> communication) {
-    List<dynamic> attachments = communication['attachments'];
-
+  void _showCommunicationDetails(BuildContext context, dynamic communication) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(communication['cntTitle'] ?? 'Dettagli Comunicazione'),
+          title: Text(communication['cntTitle'] ?? ''),
           content: SingleChildScrollView(
             child: ListBody(
-              children: <Widget>[
-                Text('Data: ${communication['cntValidFrom'] ?? 'N/A'}'),
-                Text('Categoria: ${communication['cntCategory'] ?? 'N/A'}'),
-                SizedBox(height: 10),
-                Text('Allegati:',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                attachments.isEmpty
-                    ? Text('Nessun allegato disponibile')
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: attachments.map((attachment) {
-                          return Text('${attachment['fileName']}',
-                              style: TextStyle(color: Colors.blue));
-                        }).toList(),
-                      ),
+              children: [
+                Text('Valid From: ${communication['cntValidFrom'] ?? ''}'),
+                Text('Category: ${communication['cntCategory'] ?? ''}'),
+                Text('Evento ID: ${communication['evento_id'] ?? ''}'),
+                Text('Attachments:'),
+                ...?communication['attachments']?.map<Widget>((attachment) {
+                  return ListTile(
+                    title: Text(attachment['fileName']),
+                  );
+                }).toList(),
               ],
             ),
           ),
-          actions: <Widget>[
+          actions: [
             TextButton(
               child: Text('Chiudi'),
               onPressed: () {
@@ -325,7 +386,8 @@ class _CommunicationPageState extends State<CommunicationPage> {
     return Scaffold(
       body: UserData.getUserData() == null
           ? Center(
-              child: Text('Effettua il login per accedere alle comunicazioni'))
+              child: Text('Effettua il login per accedere alle comunicazioni'),
+            )
           : _communications.isEmpty
               ? Center(child: CircularProgressIndicator())
               : Column(
@@ -345,8 +407,9 @@ class _CommunicationPageState extends State<CommunicationPage> {
                           final communication = _communications[index];
                           return ListTile(
                             title: Text(communication['cntTitle'] ?? ''),
-                            onTap: () => _showCommunicationDetails(
-                                context, communication),
+                            onTap: () {
+                              _showCommunicationDetails(context, communication);
+                            },
                           );
                         },
                       ),
